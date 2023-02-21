@@ -1,7 +1,4 @@
-#store the argument as a paramter
 $parameter = $args[0]
-
-param($l)
 
 switch ($parameter)
 {
@@ -12,7 +9,7 @@ switch ($parameter)
         Write-Host ""
         Write-Host "A list of Domain Admins can be obtained with:"
         Write-Host "--da-scan: Scan for domain administrators using Get-ADGroupMember (ActiveDirectory module required)"
-        Write-Host "--da-scan-get-creds: Same as above, but force credential request"
+        Write-Host "--da-scan-get-creds: Same as above, but request credentials"
         Write-Host ""
         Write-Host "To use the das in non dc checker tool:"
         Write-Host "-l: Provide a list of domain administrators"
@@ -29,7 +26,6 @@ switch ($parameter)
             }  
         }
 
-    #if argument --da-scan-get-creds, ask for creds then scan for domain admins and output to file
     "--da-scan-get-creds" {
         Import-Module ActiveDirectory
         $cred = Get-Credential
@@ -39,21 +35,23 @@ switch ($parameter)
             Write-Host "List of domain administrator saved to: "$FilePath
             }  
         }
-    
-    #if argument -l
-    if ($l -eq null) {
-        #if no file name passed, promt the user to pass a file
-        $l = read-host -Prompt "Where is your list of domain administrators?" 
-    } 
-    #scan the list
-    Get-Content -Path $list
-    
-    foreach ($user in $users) {
-            Write-Host $user
-        }
 
     #if arguments invalid, output error
     default {
         Write-Host "Use the -h flag for help"
+    }
+
+    #if argument -l, accept a file
+    "-l" {
+        if ($args.Length -eq 1) {
+            throw "List of domain admins required"
+        } else {
+            $users = Get-Content -Path $args[1]
+            # Output the users
+            foreach ($user in $users) {
+                Write-Host $user
+            }
+        }
+
     }
 }
