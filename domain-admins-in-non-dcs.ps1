@@ -63,7 +63,9 @@ switch ($args[0])
 
             switch ($args[2]) {
                 "--local-sessions" {
-                    Write-Host "Scanning $env:computername for Domain Administrator sessions......."
+                    Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
+                    Write-Host "#-#-#-#-#   Scanning $env:computername for Domain Administrator sessions  #-#-#-#-#"
+                    Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
                     Write-Host ""
                     $WMI = (Get-WmiObject Win32_LoggedOnUser).Antecedent
                     $ActiveUsers = @()
@@ -75,9 +77,10 @@ switch ($args[0])
                     $ActiveUsers = $ActiveUsers | Select-Object -Unique
                     foreach($Da in $Das) {
                         if ($ActiveUsers -contains $Da) {
-                        Write-Output "$Da has a current session"
+                        Write-Output "[+] $Da has a current session"
                         }
                     }
+                    Write-Host ""
                 }
 
                 "--remote-sessions" { 
@@ -90,7 +93,9 @@ switch ($args[0])
                                 $FileName = $args[4]
                                 #get the file contents
                                 $HostFile = Get-Content -Path $FileName
-                                Write-Host "Scanning all machines in $FileName for Domain Administrator sessions..."
+                                Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
+                                Write-Host "#-#-#-#-#   Scanning all machines in $FileName for Domain Administrator sessions  #-#-#-#-#-#"
+                                Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
                                 Write-Host ""
                                 #loop through each host in file
                                 foreach($HostName in $HostFile) {
@@ -105,9 +110,10 @@ switch ($args[0])
                                         $ActiveUsers = $ActiveUsers | Select-Object -Unique
                                         foreach($Da in $Das) {
                                             if ($ActiveUsers -contains $Da) {
-                                            Write-Output "$Da has a current session on $HostName"
+                                            Write-Output "[+] $Da has a current session on $HostName"
                                             }
                                         }
+                                        Write-Host ""
                                         #if connection  error, output the host to console
                                     } Catch [System.Runtime.InteropServices.COMException] {
                                         Write-Error "Error: $HostName is unavailable"
@@ -119,7 +125,9 @@ switch ($args[0])
                         } else {
                             #if single remote host supplied
                             $RemoteHost = $args[3]
-                            Write-Host "Scanning $RemoteHost for Domain Administrator sessions..."
+                            Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
+                            Write-Host "#-#-#-#-#   Scanning $RemoteHost for Domain Administrator sessions     #-#-#-#-#"
+                            Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
                             Write-Host ""
                             $WMI = (Get-WmiObject Win32_LoggedOnUser -ComputerName $RemoteHost).Antecedent
                             $ActiveUsers = @()
@@ -131,9 +139,10 @@ switch ($args[0])
                             $ActiveUsers = $ActiveUsers | Select-Object -Unique
                             foreach($Da in $Das) {
                                 if ($ActiveUsers -contains $Da) {
-                                Write-Output "$Da has a current session"
+                                Write-Output "[+] $Da has a current session"
                                 }
-                            } 
+                            }
+                            Write-Host "" 
                         }
                     } else {
                         throw "Remote host or list required"
