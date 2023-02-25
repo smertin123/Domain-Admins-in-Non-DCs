@@ -62,6 +62,7 @@ switch ($args[0])
             $Das = Get-Content -Path $args[1]
 
             switch ($args[2]) {
+                #if argument --local-sessions is passed do this:
                 "--local-sessions" {
                     Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
                     Write-Host "#-#-#-#-#   Scanning $env:computername for Domain Administrator sessions  #-#-#-#-#"
@@ -82,7 +83,7 @@ switch ($args[0])
                     }
                     Write-Host ""
                 }
-
+                #if argument --remote-sessions is passed do this:
                 "--remote-sessions" { 
                     #check for remote session argument
                     if ($args[3]) {
@@ -147,6 +148,17 @@ switch ($args[0])
                     } else {
                         throw "Remote host or list required"
                     }
+                }
+                #if argument --local-processes is passed do this:
+                "--processes" {
+                    Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
+                    Write-Host "#-#-#-#-#   Scanning $env:computername for Domain Administrator processes  #-#-#-#-#"
+                    Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
+                    Write-Host ""
+                    foreach($Da in $Das) {
+                        Get-WmiObject -Class Win32_Process | Select Name, @{Name="UserName";Expression={$_.GetOwner().Domain+"\"+$_.GetOwner().User}} | Select-String -Pattern $Da
+                    }
+                    Write-Host ""
                 }
             }
         }
