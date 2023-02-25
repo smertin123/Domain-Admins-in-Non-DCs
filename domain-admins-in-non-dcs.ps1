@@ -26,6 +26,9 @@ switch ($args[0])
         Write-Host "--remote-sessions: Scan a remote machine for Domain Administrator sessions"
         Write-Host "-r: Provide a list of remote machines to scan"
         Write-Host ""
+        Write-Host "Domain Administrator Processes"
+        Write-Host "--processes: List processes on the local machine owned by Domain Administrators"
+        Write-Host ""
     }
 
     #if argument --da-scan, scan for domain admins and output to file
@@ -149,7 +152,7 @@ switch ($args[0])
                         throw "Remote host or list required"
                     }
                 }
-                #if argument --local-processes is passed do this:
+                #if argument --processes is passed do this:
                 "--processes" {
                     Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
                     Write-Host "#-#-#-#-#   Scanning $env:computername for Domain Administrator processes  #-#-#-#-#"
@@ -158,7 +161,6 @@ switch ($args[0])
                     foreach($Da in $Das) {
                         Get-WmiObject -Class Win32_Process | Select Name, @{Name="UserName";Expression={$_.GetOwner().Domain+"\"+$_.GetOwner().User}} | Select-String -Pattern $Da
                     }
-                    Write-Host ""
                 }
             }
         }
