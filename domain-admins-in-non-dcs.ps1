@@ -65,11 +65,28 @@ switch ($args[0])
                         }
                     }
                 }
+
+                "--remote-sessions" { 
+                    if ($args[3]) {
+                        $RemoteHost = $args[3]
+                        $WMI = (Get-WmiObject Win32_LoggedOnUser -ComputerName $RemoteHost).Antecedent
+                        $ActiveUsers = @()
+                            foreach($User in $WMI) {
+                            $StartOfUsername = $User.LastIndexOf('=') + 2
+                            $EndOfUsername = $User.Length - $User.LastIndexOf('=') -3
+                            $ActiveUsers += $User.Substring($StartOfUsername,$EndOfUsername)
+                        }
+                        $ActiveUsers = $ActiveUsers | Select-Object -Unique
+                        foreach($Da in $Das) {
+                            if ($ActiveUsers -contains $Da) {
+                            Write-Output "$Da has a current session"
+                            }
+                        }
+                    } else {
+                        throw "Remote host required"
+                    }
+                }
             }
-            <# Debug test: Output the users
-            foreach ($Da in $Das) {
-                Write-Host $Da
-            }#>
         }
     }
 }
