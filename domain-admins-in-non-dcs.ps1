@@ -51,6 +51,8 @@ switch ($args[0])
 
             switch ($args[2]) {
                 "--local-sessions" {
+                    Write-Host "Scanning $env:computername for active domain administrator sessions......."
+                    Write-Host ""
                     $WMI = (Get-WmiObject Win32_LoggedOnUser).Antecedent
                     $ActiveUsers = @()
                     foreach($User in $WMI) {
@@ -67,19 +69,58 @@ switch ($args[0])
                 }
 
                 "--remote-sessions" { 
+                    #check for remote session argument
                     if ($args[3]) {
-                        $RemoteHost = $args[3]
-                        $WMI = (Get-WmiObject Win32_LoggedOnUser -ComputerName $RemoteHost).Antecedent
-                        $ActiveUsers = @()
-                            foreach($User in $WMI) {
-                            $StartOfUsername = $User.LastIndexOf('=') + 2
-                            $EndOfUsername = $User.Length - $User.LastIndexOf('=') -3
-                            $ActiveUsers += $User.Substring($StartOfUsername,$EndOfUsername)
-                        }
-                        $ActiveUsers = $ActiveUsers | Select-Object -Unique
-                        foreach($Da in $Das) {
-                            if ($ActiveUsers -contains $Da) {
-                            Write-Output "$Da has a current session"
+                        #if list argument passed
+                        if ($args[3] -eq "-r") {
+                            #check for filename
+                            if ($args[4]) {
+                                $FileName = $args[4]
+                                #get the file contents
+                                $HostFile = Get-Content -Path $FileName
+                                Write-Host "Scanning all machines in $FileName for active domain administrator sessions......."
+                                Write-Host ""
+                                #loop through each host in file
+                                foreach($HostName in $HostFile) {
+                                    Try {
+                                        $WMI = (Get-WmiObject Win32_LoggedOnUser -ComputerName $HostName -ErrorAction Stop).Antecedent
+                                        $ActiveUsers = @()
+                                        foreach($User in $WMI) {
+                                            $StartOfUsername = $User.LastIndexOf('=') + 2
+                                            $EndOfUsername = $User.Length - $User.LastIndexOf('=') -3
+                                            $ActiveUsers += $User.Substring($StartOfUsername,$EndOfUsername)
+                                        }
+                                        $ActiveUsers = $ActiveUsers | Select-Object -Unique
+                                        foreach($Da in $Das) {
+                                            if ($ActiveUsers -contains $Da) {
+                                            Write-Output "$Da has a current session on $HostName"
+                                            }
+                                        }
+                                        #if connection  error, output the host to console
+                                    } Catch [System.Runtime.InteropServices.COMException] {
+                                        Write-Error "Error: $HostName is unavailable"
+                                    }                                  
+                                }
+                            } else {
+                                throw "File required"
+                            }
+                        } else {
+                            #if single remote host supplied
+                            $RemoteHost = $args[3]
+                            Write-Host "Scanning $RemoteHost for active domain administrator sessions......."
+                            Write-Host ""
+                            $WMI = (Get-WmiObject Win32_LoggedOnUser -ComputerName $RemoteHost).Antecedent
+                            $ActiveUsers = @()
+                                foreach($User in $WMI) {
+                                $StartOfUsername = $User.LastIndexOf('=') + 2
+                                $EndOfUsername = $User.Length - $User.LastIndexOf('=') -3
+                                $ActiveUsers += $User.Substring($StartOfUsername,$EndOfUsername)
+                            }
+                            $ActiveUsers = $ActiveUsers | Select-Object -Unique
+                            foreach($Da in $Das) {
+                                if ($ActiveUsers -contains $Da) {
+                                Write-Output "$Da has a current session"
+                                }
                             }
                         }
                     } else {
