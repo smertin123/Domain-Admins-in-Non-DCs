@@ -7,15 +7,25 @@ switch ($args[0])
 
     #if argument -h show help
     "-h" {
+        Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
+        Write-Host "#-#-#-#    Domain Administrators in Non-Domain Controllers Scanner    #-#-#-#"
+        Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#=#-#-#"
         Write-Host ""
-        Write-Host "This tool offers the ability to scan for Domain Administrator accounts (ActiveDirectory module required):"
-        Write-Host "--da-scan: Scan for domain administrators using current user credentials"
-        Write-Host "--get-creds: Promt for credentials"
-        Write-Host "-o: Choose output file (Default domain-admin-scan-results.txt)"
+        Write-Host "-l: Provide list of Domain Administrators"
         Write-Host ""
-        Write-Host "To use the das in non dc checker tool:"
-        Write-Host "-l: Provide a list of domain administrators"
-        Write-Host "--local-sessions: Scan the local machine for current domain administrator sessions"
+        Write-Host "If you dont have a list of Domain Administrators, you can get one with:"
+        Write-Host "--da-scan: Scan for domain administrators"
+        Write-Host "-c: Promt for credentials"
+        Write-Host "-o: Choose alternative output file (Default domain-admin-scan-results.txt)"
+        Write-Host ""
+        Write-Host ""
+        Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#    Available scans   #-#-#-#-#-#-#-#-#-#-#-#-#-#"
+        Write-Host ""
+        Write-Host "Domain Administrator sessions:"
+        Write-Host "--local-sessions: Scan the local machine for Domain Administrator sessions"
+        Write-Host "--remote-sessions: Scan a remote machine for Domain Administrator sessions"
+        Write-Host "-r: Provide a list of remote machines to scan"
+        Write-Host ""
     }
 
     #if argument --da-scan, scan for domain admins and output to file
@@ -31,7 +41,7 @@ switch ($args[0])
         #else use the default filename
         $FilePath = ".\domain-admin-scan-results.txt"
         }
-        if($args[1] -eq "--get-creds" -Or $args[3] -eq "--get-creds") {
+        if($args[1] -eq "-c" -Or $args[3] -eq "-c") {
             $cred = Get-Credential
             $DomainAdmins = Get-ADGroupMember -Credential $cred -Identity "Domain Admins" | select -ExpandProperty "SamAccountName" | Out-File -FilePath $FilePath
             Write-Host "File created: "$FilePath
@@ -46,12 +56,14 @@ switch ($args[0])
     "-l" {
         if ($args.Length -eq 1) {
            throw "List of domain admins required"
+        } elseif ($args.Length -eq 2) {
+            throw "Scan argument required. See Help for available scans"  
         } else {
             $Das = Get-Content -Path $args[1]
 
             switch ($args[2]) {
                 "--local-sessions" {
-                    Write-Host "Scanning $env:computername for active domain administrator sessions......."
+                    Write-Host "Scanning $env:computername for Domain Administrator sessions......."
                     Write-Host ""
                     $WMI = (Get-WmiObject Win32_LoggedOnUser).Antecedent
                     $ActiveUsers = @()
@@ -78,7 +90,7 @@ switch ($args[0])
                                 $FileName = $args[4]
                                 #get the file contents
                                 $HostFile = Get-Content -Path $FileName
-                                Write-Host "Scanning all machines in $FileName for active domain administrator sessions......."
+                                Write-Host "Scanning all machines in $FileName for Domain Administrator sessions..."
                                 Write-Host ""
                                 #loop through each host in file
                                 foreach($HostName in $HostFile) {
@@ -107,7 +119,7 @@ switch ($args[0])
                         } else {
                             #if single remote host supplied
                             $RemoteHost = $args[3]
-                            Write-Host "Scanning $RemoteHost for active domain administrator sessions......."
+                            Write-Host "Scanning $RemoteHost for Domain Administrator sessions..."
                             Write-Host ""
                             $WMI = (Get-WmiObject Win32_LoggedOnUser -ComputerName $RemoteHost).Antecedent
                             $ActiveUsers = @()
@@ -121,10 +133,10 @@ switch ($args[0])
                                 if ($ActiveUsers -contains $Da) {
                                 Write-Output "$Da has a current session"
                                 }
-                            }
+                            } 
                         }
                     } else {
-                        throw "Remote host required"
+                        throw "Remote host or list required"
                     }
                 }
             }
