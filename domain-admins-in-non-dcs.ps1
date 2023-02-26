@@ -7,27 +7,42 @@ switch ($args[0])
 
     #if argument -h show help
     "-h" {
-        Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
-        Write-Host "#-#-#-#    Domain Administrators in Non-Domain Controllers Scanner    #-#-#-#"
-        Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#=#-#-#"
         Write-Host ""
-        Write-Host "-l: Provide list of Domain Administrators"
+        Write-Host " #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
+        Write-Host " #-#-#-#    Domain Administrators in Non-Domain Controllers Scanner    #-#-#-#"
+        Write-Host " #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#=#-#-#"
         Write-Host ""
-        Write-Host "If you dont have a list of Domain Administrators, you can get one with:"
-        Write-Host "--da-scan: Scan for domain administrators"
-        Write-Host "-c: Promt for credentials"
-        Write-Host "-o: Choose alternative output file (Default domain-admin-scan-results.txt)"
+        Write-Host " -l: Provide list of Domain Administrators"
+        Write-Host ""
+        Write-Host "     -------------------------------------"
+        Write-Host "     ##  Get Domain Administrator list  ##"
+        Write-Host "     -------------------------------------"
+        Write-Host " --da-scan: Scan for Domain Administrators"
+        Write-Host " -c: Promt for credentials"
+        Write-Host " -o: Choose alternative output file (Default domain-admin-scan-results.txt)"
         Write-Host ""
         Write-Host ""
-        Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#    Available scans   #-#-#-#-#-#-#-#-#-#-#-#-#-#"
+        Write-Host " #-#-#-#-#-#-#-#-#-#-#    Available scans   #-#-#-#-#-#-#-#-#-#-#"
+        Write-Host "     ***   All scans require a Domain Administrator list   ***"
         Write-Host ""
-        Write-Host "Domain Administrator sessions:"
-        Write-Host "--local-sessions: Scan the local machine for Domain Administrator sessions"
-        Write-Host "--remote-sessions: Scan a remote machine for Domain Administrator sessions"
-        Write-Host "-r: Provide a list of remote machines to scan"
+        Write-Host "       ----------------"
+        Write-Host "       ##  Sessions  ##"
+        Write-Host "       ----------------"
+        Write-Host " --local-sessions: Scan the local machine for Domain Administrator sessions"
+        Write-Host " --remote-sessions: Scan a remote machine for Domain Administrator sessions"
+        Write-Host " -r: Provide a list of remote machines to scan"
         Write-Host ""
-        Write-Host "Domain Administrator Processes"
-        Write-Host "--processes: List processes on the local machine owned by Domain Administrators"
+        Write-Host "       -----------------"
+        Write-Host "       ##  Processes  ##"
+        Write-Host "       -----------------"
+        Write-Host " --processes: List processes on the local machine owned by Domain Administrators"
+        Write-Host ""
+        Write-Host "      ------------------------"
+        Write-Host "      ##  User directories  ##"
+        Write-Host "      ------------------------"
+        Write-Host " --local-user-dirs: Scan the local machines default Windows drive for Domain Administrator user directories"
+        Write-Host " --remote-user-dirs: Scan a remotel machines default Windows drive for Domain Administrator user directories"
+        Write-Host " -r: Provide a list of remote machines to scan"
         Write-Host ""
     }
 
@@ -160,6 +175,81 @@ switch ($args[0])
                     Write-Host ""
                     foreach($Da in $Das) {
                         Get-WmiObject -Class Win32_Process | Select Name, @{Name="UserName";Expression={$_.GetOwner().Domain+"\"+$_.GetOwner().User}} | Select-String -Pattern $Da
+                    }
+                }
+                #if argument --local-users-dir is passed do this:
+                "--local-user-dirs" {
+                    Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
+                    Write-Host "#-#-#-#-#   Scanning $env:computername for Domain Administrator user directories  #-#-#-#-#"
+                    Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
+                    Write-Host ""
+                    #find the default Windows drive
+                    $drive = (Get-WmiObject Win32_OperatingSystem).SystemDrive
+                    #scan default drive user dir for domain administrators
+                    foreach($Da in $Das) {
+                        Get-ChildItem $drive"\Users" | Select-String -Pattern $Da
+                    }
+                }
+                #if argument --remote-users-dir is passed do this:
+                "--remote-user-dirs" {
+                    #check for remote session argument
+                    if ($args[3]) {
+                        #get creds from the user
+                        #if list argument passed
+                        if ($args[3] -eq "-r") {
+                            #check for filename
+                            if ($args[4]) {
+                                $FileName = $args[4]
+                                #get the file contents
+                                $HostFile = Get-Content -Path $FileName
+                            }
+                            Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
+                            Write-Host "#-#-#-#-#   Scanning all machines in $FileName for Domain Administrator user directories  #-#-#-#-#"
+                            Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
+                            Write-Host ""
+                            foreach($HostName in $HostFile) {
+                                    #find the default Windows drive
+                                    Try {
+                                        $drive = (Get-WmiObject Win32_OperatingSystem -ComputerName $HostName).SystemDrive
+                                        $drive = $drive[0]
+                                    } Catch {
+                                        Write-Host "Cannot identify default Windows drive for machine $HostName"
+                                    }
+                                    Write-Host "$HostName contains User directories for the following Domain Administrators:"
+                                    #scan default drive user dir for domain administrators
+                                    foreach($Da in $Das) {
+                                        Try {
+                                            Get-ChildItem \\$HostName\$drive$\Users | Select-String -Pattern $Da
+                                        } Catch [System.Runtime.InteropServices.COMException] {
+                                        Write-Error "Error: $HostName is unavailable"
+                                    }
+                                }
+                            }
+                        } else {
+                            $RemoteHost = $args[3]
+                            Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
+                            Write-Host "#-#-#-#-#   Scanning $RemoteHost for Domain Administrator user directories  #-#-#-#-#"
+                            Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
+                            Write-Host ""
+                                #find the default Windows drive
+                                Try {
+                                    $drive = (Get-WmiObject Win32_OperatingSystem -ComputerName $RemoteHost).SystemDrive
+                                    $drive = $drive[0]
+                                } Catch {
+                                    Write-Host "Cannot identify default Windows drive for machine $RemoteHost"
+                                }
+                                Write-Host "$RemoteHost contains User directories for the following Domain Administrators:"
+                                #scan default drive user dir for domain administrators
+                                foreach($Da in $Das) {
+                                    Try {
+                                        Get-ChildItem \\$RemoteHost\$drive$\Users | Select-String -Pattern $Da
+                                    } Catch [System.Runtime.InteropServices.COMException] {
+                                        Write-Error "Error: $RemoteHost is unavailable"
+                                    }
+                                }
+                        }
+                    } else {
+                        throw "Remote host or list required"
                     }
                 }
             }
