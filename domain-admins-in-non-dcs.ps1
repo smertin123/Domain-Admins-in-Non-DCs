@@ -90,10 +90,10 @@ Function Get-Processes {
     Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
     Write-Host "#-#-#-#-#-#-#-#   Scanning for Domain Administrator processes   #-#-#-#-#-#-#-#-#-#"
     Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
-    Write-Host ""
     foreach($Da in $Das) {
         Get-WmiObject -Class Win32_Process | Select Name, @{Name="UserName";Expression={$_.GetOwner().Domain+"\"+$_.GetOwner().User}} | Select-String -Pattern $Da
     }
+    Write-Host ""
 }
 
 Function Get-UserDirs {
@@ -281,6 +281,11 @@ switch ($args[0])
                     } else {
                         throw "Remote host or list required"
                     }
+                }
+                "--local-all" {
+                    Get-Sessions
+                    Get-Processes
+                    Get-UserDirs
                 }
             }
         }
