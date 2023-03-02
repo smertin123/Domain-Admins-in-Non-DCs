@@ -168,31 +168,44 @@ switch ($args[0])
         Write-Host "     -------------------------------------"
         Write-Host "     ##  Get Domain Administrator list  ##"
         Write-Host "     -------------------------------------"
+        Write-Host ""
         Write-Host " --da-scan: Scan for Domain Administrators"
         Write-Host " -c: Promt for credentials"
         Write-Host " -o: Choose alternative output file (Default domain-admin-scan-results.txt)"
         Write-Host ""
         Write-Host ""
         Write-Host " #-#-#-#-#-#-#-#-#-#-#    Available scans   #-#-#-#-#-#-#-#-#-#-#"
+        Write-Host ""
         Write-Host "     ***   All scans require a Domain Administrator list   ***"
         Write-Host ""
-        Write-Host "       ----------------"
-        Write-Host "       ##  Sessions  ##"
-        Write-Host "       ----------------"
+        Write-Host "      ----------------"
+        Write-Host "      ##  Sessions  ##"
+        Write-Host "      ----------------"
+        Write-Host ""
         Write-Host " --local-sessions: Scan the local machine for Domain Administrator sessions"
         Write-Host " --remote-sessions: Scan a remote machine for Domain Administrator sessions"
         Write-Host " -r: Provide a list of remote machines to scan"
         Write-Host ""
-        Write-Host "       -----------------"
-        Write-Host "       ##  Processes  ##"
-        Write-Host "       -----------------"
+        Write-Host "      -----------------"
+        Write-Host "      ##  Processes  ##"
+        Write-Host "      -----------------"
+        Write-Host ""
         Write-Host " --processes: List processes on the local machine owned by Domain Administrators"
         Write-Host ""
-        Write-Host "      ------------------------"
-        Write-Host "      ##  User directories  ##"
-        Write-Host "      ------------------------"
+        Write-Host "     ------------------------"
+        Write-Host "     ##  User directories  ##"
+        Write-Host "     ------------------------"
+        Write-Host ""
         Write-Host " --local-user-dirs: Scan the local machines default Windows drive for Domain Administrator user directories"
-        Write-Host " --remote-user-dirs: Scan a remotel machines default Windows drive for Domain Administrator user directories"
+        Write-Host " --remote-user-dirs: Scan a remote machines default Windows drive for Domain Administrator user directories"
+        Write-Host " -r: Provide a list of remote machines to scan"
+        Write-Host ""
+        Write-Host "     -----------------"
+        Write-Host "     ##  Full Scan  ##"
+        Write-Host "     -----------------"
+        Write-Host ""
+        Write-Host " --local-all: Scan the local machine for all Domain Adminstrator sessions, directories and processes"
+        Write-Host " --remote-all: Scan a remote machine for Domain Administrator sessions and directories"
         Write-Host " -r: Provide a list of remote machines to scan"
         Write-Host ""
     }
@@ -282,10 +295,34 @@ switch ($args[0])
                         throw "Remote host or list required"
                     }
                 }
+                #if argument --local-all is passed do this:
                 "--local-all" {
                     Get-Sessions
                     Get-Processes
                     Get-UserDirs
+                }
+                #if argument --local-all is passed do this:
+                "--remote-all" {
+                    if ($args[3]) {
+                        #if list argument passed
+                        if ($args[3] -eq "-r") {
+                            #check for filename
+                            if ($args[4]) {
+                                $FileName = $args[4]
+                                Get-Sessions -FileName $FileName
+                                Get-UserDirs -FileName $FileName
+                            } else {
+                                throw "File required"
+                            }
+                        } else {
+                            #if single remote host supplied
+                            $HostName = $args[3]
+                            Get-Sessions -HostName $HostName
+                            Get-UserDirs -HostName $HostName
+                        }
+                    } else {
+                        throw "Remote host or list required"
+                    }
                 }
             }
         }
