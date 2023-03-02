@@ -1,3 +1,154 @@
+#Store all scans in functions
+
+Function Get-DAs {
+    param (
+        $FilePath,
+        $GetCreds
+    )
+
+    Import-Module ActiveDirectory
+    #if output file requested as second argument, store third argument as filename
+    if($GetCreds -eq "True") {
+        $cred = Get-Credential
+        $DomainAdmins = Get-ADGroupMember -Credential $cred -Identity "Domain Admins" | select -ExpandProperty "SamAccountName" | Out-File -FilePath $FilePath
+        Write-Host "File created: "$FilePath
+    } else {
+    #get a list of admins, select the name only, output results to file 
+    $DomainAdmins = Get-ADGroupMember -Identity "Domain Admins" | select -ExpandProperty "SamAccountName" | Out-File -FilePath $FilePath
+    Write-Host "File created: "$FilePath
+    }
+}
+
+Function Get-Sessions {
+    param (
+        $FileName,
+        $HostName
+    )
+
+    Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
+    Write-Host "#-#-#-#-#-#-#-#-#   Scanning for Domain Administrator sessions  #-#-#-#-#-#-#-#-#-#"
+    Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
+    Write-Host ""
+
+    Function Get-RemoteSessions {
+        param (
+            $HostName
+        )
+
+        $WMI = (Get-WmiObject Win32_LoggedOnUser -ComputerName $HostName -ErrorAction Stop).Antecedent
+        $ActiveUsers = @()
+        foreach($User in $WMI) {
+            $StartOfUsername = $User.LastIndexOf('=') + 2
+            $EndOfUsername = $User.Length - $User.LastIndexOf('=') -3
+            $ActiveUsers += $User.Substring($StartOfUsername,$EndOfUsername)
+        }
+        $ActiveUsers = $ActiveUsers | Select-Object -Unique
+        foreach($Da in $Das) {
+            if ($ActiveUsers -contains $Da) {
+            Write-Output "[+] $Da has a current session on $HostName"
+            }
+        }
+        Write-Host ""
+    }
+
+    if ($FileName) {
+        $HostFile = Get-Content -Path $FileName
+        foreach($HostName in $HostFile) {
+            Try {
+                Get-RemoteSessions -HostName $HostName
+                #if connection  error, output the host to console
+            } Catch [System.Runtime.InteropServices.COMException] {
+                Write-Error "Error: $HostName is unavailable"
+            }                                  
+        }
+    } elseif ($HostName) {
+        Try {
+            Get-RemoteSessions -HostName $HostName
+            #if connection  error, output the host to console
+        } Catch [System.Runtime.InteropServices.COMException] {
+            Write-Error "Error: $HostName is unavailable"
+        }
+    } else {
+        $WMI = (Get-WmiObject Win32_LoggedOnUser).Antecedent
+        $ActiveUsers = @()
+        foreach($User in $WMI) {
+            $StartOfUsername = $User.LastIndexOf('=') + 2
+            $EndOfUsername = $User.Length - $User.LastIndexOf('=') -3
+            $ActiveUsers += $User.Substring($StartOfUsername,$EndOfUsername)
+        }
+        $ActiveUsers = $ActiveUsers | Select-Object -Unique
+        foreach($Da in $Das) {
+            if ($ActiveUsers -contains $Da) {
+            Write-Output "[+] $Da has a current session"
+        }
+    }
+    Write-Host ""
+    }
+}
+
+Function Get-Processes {
+    Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
+    Write-Host "#-#-#-#-#-#-#-#   Scanning for Domain Administrator processes   #-#-#-#-#-#-#-#-#-#"
+    Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
+    Write-Host ""
+    foreach($Da in $Das) {
+        Get-WmiObject -Class Win32_Process | Select Name, @{Name="UserName";Expression={$_.GetOwner().Domain+"\"+$_.GetOwner().User}} | Select-String -Pattern $Da
+    }
+}
+
+Function Get-UserDirs {
+    param (
+        $FileName,
+        $HostName
+    )
+    Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
+    Write-Host "#-#-#-#-#-#-#   Scanning for Domain Administrator user directories  #-#-#-#-#-#-#-#"
+    Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
+    Write-Host ""
+
+    Function Get-RemoteDirs {
+        param (
+            $HostName
+        )
+
+        Try {
+            $drive = (Get-WmiObject Win32_OperatingSystem -ComputerName $HostName).SystemDrive
+            $drive = $drive[0]
+        } Catch {
+            Write-Host "Cannot identify default Windows drive for machine $HostName"
+        }
+        Write-Host "[+] $HostName contains User directories for the following Domain Administrators:"
+        #scan default drive user dir for domain administrators
+        foreach($Da in $Das) {
+            Try {
+                Get-ChildItem \\$HostName\$drive$\Users | Select-String -Pattern $Da
+            } Catch [System.Runtime.InteropServices.COMException] {
+                Write-Error "Error: $HostName is unavailable"
+            }
+        }
+    }
+
+    if($FileName) {
+        #get the file contents
+        $HostFile = Get-Content -Path $FileName
+        foreach($HostName in $HostFile) {
+            #find the default Windows drive
+            Get-RemoteDirs -HostName $HostName
+        }
+    } elseif ($HostName) {
+        Get-RemoteDirs -HostName $HostName
+    } else {
+        #find the default Windows drive
+        $drive = (Get-WmiObject Win32_OperatingSystem).SystemDrive
+        #scan default drive user dir for domain administrators
+        foreach($Da in $Das) {
+            Get-ChildItem $drive"\Users" | Select-String -Pattern $Da
+        }
+    }
+}
+
+
+#act based on arguments
 switch ($args[0])
 {
     #if arguments invalid, output error
@@ -59,15 +210,14 @@ switch ($args[0])
         #else use the default filename
         $FilePath = ".\domain-admin-scan-results.txt"
         }
+        #if user requests a cred prompt
         if($args[1] -eq "-c" -Or $args[3] -eq "-c") {
-            $cred = Get-Credential
-            $DomainAdmins = Get-ADGroupMember -Credential $cred -Identity "Domain Admins" | select -ExpandProperty "SamAccountName" | Out-File -FilePath $FilePath
-            Write-Host "File created: "$FilePath
+            #call Get-DAs function and prompt for creds
+            Get-DAs -FilePath $FilePath -GetCreds True
+            #if no cred prompt request, call Get-DAs function as current user
         } else {
-        #get a list of admins, select the name only, output results to file 
-        $DomainAdmins = Get-ADGroupMember -Identity "Domain Admins" | select -ExpandProperty "SamAccountName" | Out-File -FilePath $FilePath
-        Write-Host "File created: "$FilePath
-        }            
+            Get-DAs -FilePath $FilePath
+        }
     }
 
     #if argument -l, accept a file
@@ -78,90 +228,27 @@ switch ($args[0])
             throw "Scan argument required. See Help for available scans"  
         } else {
             $Das = Get-Content -Path $args[1]
-
             switch ($args[2]) {
-                #if argument --local-sessions is passed do this:
+                #if argument --local-sessions is passed call Get-Sessions function:
                 "--local-sessions" {
-                    Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
-                    Write-Host "#-#-#-#-#   Scanning $env:computername for Domain Administrator sessions  #-#-#-#-#"
-                    Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
-                    Write-Host ""
-                    $WMI = (Get-WmiObject Win32_LoggedOnUser).Antecedent
-                    $ActiveUsers = @()
-                    foreach($User in $WMI) {
-                        $StartOfUsername = $User.LastIndexOf('=') + 2
-                        $EndOfUsername = $User.Length - $User.LastIndexOf('=') -3
-                        $ActiveUsers += $User.Substring($StartOfUsername,$EndOfUsername)
-                    }
-                    $ActiveUsers = $ActiveUsers | Select-Object -Unique
-                    foreach($Da in $Das) {
-                        if ($ActiveUsers -contains $Da) {
-                        Write-Output "[+] $Da has a current session"
-                        }
-                    }
-                    Write-Host ""
+                    Get-Sessions
                 }
-                #if argument --remote-sessions is passed do this:
+                #if argument --remote-sessions is passed Get-Sessions function with filename:
                 "--remote-sessions" { 
-                    #check for remote session argument
                     if ($args[3]) {
                         #if list argument passed
                         if ($args[3] -eq "-r") {
                             #check for filename
                             if ($args[4]) {
                                 $FileName = $args[4]
-                                #get the file contents
-                                $HostFile = Get-Content -Path $FileName
-                                Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
-                                Write-Host "#-#-#-#-#   Scanning all machines in $FileName for Domain Administrator sessions  #-#-#-#-#-#"
-                                Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
-                                Write-Host ""
-                                #loop through each host in file
-                                foreach($HostName in $HostFile) {
-                                    Try {
-                                        $WMI = (Get-WmiObject Win32_LoggedOnUser -ComputerName $HostName -ErrorAction Stop).Antecedent
-                                        $ActiveUsers = @()
-                                        foreach($User in $WMI) {
-                                            $StartOfUsername = $User.LastIndexOf('=') + 2
-                                            $EndOfUsername = $User.Length - $User.LastIndexOf('=') -3
-                                            $ActiveUsers += $User.Substring($StartOfUsername,$EndOfUsername)
-                                        }
-                                        $ActiveUsers = $ActiveUsers | Select-Object -Unique
-                                        foreach($Da in $Das) {
-                                            if ($ActiveUsers -contains $Da) {
-                                            Write-Output "[+] $Da has a current session on $HostName"
-                                            }
-                                        }
-                                        Write-Host ""
-                                        #if connection  error, output the host to console
-                                    } Catch [System.Runtime.InteropServices.COMException] {
-                                        Write-Error "Error: $HostName is unavailable"
-                                    }                                  
-                                }
+                                Get-Sessions -FileName $FileName
                             } else {
                                 throw "File required"
                             }
                         } else {
                             #if single remote host supplied
-                            $RemoteHost = $args[3]
-                            Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
-                            Write-Host "#-#-#-#-#   Scanning $RemoteHost for Domain Administrator sessions     #-#-#-#-#"
-                            Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
-                            Write-Host ""
-                            $WMI = (Get-WmiObject Win32_LoggedOnUser -ComputerName $RemoteHost).Antecedent
-                            $ActiveUsers = @()
-                                foreach($User in $WMI) {
-                                $StartOfUsername = $User.LastIndexOf('=') + 2
-                                $EndOfUsername = $User.Length - $User.LastIndexOf('=') -3
-                                $ActiveUsers += $User.Substring($StartOfUsername,$EndOfUsername)
-                            }
-                            $ActiveUsers = $ActiveUsers | Select-Object -Unique
-                            foreach($Da in $Das) {
-                                if ($ActiveUsers -contains $Da) {
-                                Write-Output "[+] $Da has a current session"
-                                }
-                            }
-                            Write-Host "" 
+                            $HostName = $args[3]
+                            Get-Sessions -HostName $HostName 
                         }
                     } else {
                         throw "Remote host or list required"
@@ -169,26 +256,11 @@ switch ($args[0])
                 }
                 #if argument --processes is passed do this:
                 "--processes" {
-                    Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
-                    Write-Host "#-#-#-#-#   Scanning $env:computername for Domain Administrator processes  #-#-#-#-#"
-                    Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
-                    Write-Host ""
-                    foreach($Da in $Das) {
-                        Get-WmiObject -Class Win32_Process | Select Name, @{Name="UserName";Expression={$_.GetOwner().Domain+"\"+$_.GetOwner().User}} | Select-String -Pattern $Da
-                    }
+                    Get-Processes
                 }
                 #if argument --local-users-dir is passed do this:
                 "--local-user-dirs" {
-                    Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
-                    Write-Host "#-#-#-#-#   Scanning $env:computername for Domain Administrator user directories  #-#-#-#-#"
-                    Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
-                    Write-Host ""
-                    #find the default Windows drive
-                    $drive = (Get-WmiObject Win32_OperatingSystem).SystemDrive
-                    #scan default drive user dir for domain administrators
-                    foreach($Da in $Das) {
-                        Get-ChildItem $drive"\Users" | Select-String -Pattern $Da
-                    }
+                    Get-UserDirs
                 }
                 #if argument --remote-users-dir is passed do this:
                 "--remote-user-dirs" {
@@ -200,53 +272,11 @@ switch ($args[0])
                             #check for filename
                             if ($args[4]) {
                                 $FileName = $args[4]
-                                #get the file contents
-                                $HostFile = Get-Content -Path $FileName
-                            }
-                            Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
-                            Write-Host "#-#-#-#-#   Scanning all machines in $FileName for Domain Administrator user directories  #-#-#-#-#"
-                            Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
-                            Write-Host ""
-                            foreach($HostName in $HostFile) {
-                                    #find the default Windows drive
-                                    Try {
-                                        $drive = (Get-WmiObject Win32_OperatingSystem -ComputerName $HostName).SystemDrive
-                                        $drive = $drive[0]
-                                    } Catch {
-                                        Write-Host "Cannot identify default Windows drive for machine $HostName"
-                                    }
-                                    Write-Host "$HostName contains User directories for the following Domain Administrators:"
-                                    #scan default drive user dir for domain administrators
-                                    foreach($Da in $Das) {
-                                        Try {
-                                            Get-ChildItem \\$HostName\$drive$\Users | Select-String -Pattern $Da
-                                        } Catch [System.Runtime.InteropServices.COMException] {
-                                        Write-Error "Error: $HostName is unavailable"
-                                    }
-                                }
+                                Get-UserDirs -FileName $FileName
                             }
                         } else {
-                            $RemoteHost = $args[3]
-                            Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
-                            Write-Host "#-#-#-#-#   Scanning $RemoteHost for Domain Administrator user directories  #-#-#-#-#"
-                            Write-Host "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#"
-                            Write-Host ""
-                                #find the default Windows drive
-                                Try {
-                                    $drive = (Get-WmiObject Win32_OperatingSystem -ComputerName $RemoteHost).SystemDrive
-                                    $drive = $drive[0]
-                                } Catch {
-                                    Write-Host "Cannot identify default Windows drive for machine $RemoteHost"
-                                }
-                                Write-Host "$RemoteHost contains User directories for the following Domain Administrators:"
-                                #scan default drive user dir for domain administrators
-                                foreach($Da in $Das) {
-                                    Try {
-                                        Get-ChildItem \\$RemoteHost\$drive$\Users | Select-String -Pattern $Da
-                                    } Catch [System.Runtime.InteropServices.COMException] {
-                                        Write-Error "Error: $RemoteHost is unavailable"
-                                    }
-                                }
+                            $HostName = $args[3]
+                            Get-UserDirs -HostName $HostName
                         }
                     } else {
                         throw "Remote host or list required"
