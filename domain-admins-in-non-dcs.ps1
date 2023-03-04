@@ -55,18 +55,18 @@ Function Get-Sessions {
         $HostFile = Get-Content -Path $FileName
         foreach($HostName in $HostFile) {
             Try {
-                Get-RemoteSessions -HostName $HostName
+                Get-RemoteSessions -HostName $HostName -ErrorAction Stop
                 #if connection  error, output the host to console
             } Catch [System.Runtime.InteropServices.COMException] {
-                Write-Error "Error: $HostName is unavailable"
+                Write-Error "[-] Error: $HostName is unavailable"
             }                                  
         }
     } elseif ($HostName) {
         Try {
-            Get-RemoteSessions -HostName $HostName
+            Get-RemoteSessions -HostName $HostName -ErrorAction Stop
             #if connection  error, output the host to console
         } Catch [System.Runtime.InteropServices.COMException] {
-            Write-Error "Error: $HostName is unavailable"
+            Write-Error "[-] Error: $HostName is unavailable"
         }
     } else {
         $WMI = (Get-WmiObject Win32_LoggedOnUser).Antecedent
@@ -112,19 +112,18 @@ Function Get-UserDirs {
         )
 
         Try {
-            $drive = (Get-WmiObject Win32_OperatingSystem -ComputerName $HostName).SystemDrive
+            $drive = (Get-WmiObject Win32_OperatingSystem -ComputerName $HostName -ErrorAction Stop).SystemDrive
+            Write-Host "[+] $HostName drive $drive contains User directories for the following Domain Administrators:"
+            #get just the drive letter
             $drive = $drive[0]
-        } Catch {
-            Write-Host "Cannot identify default Windows drive for machine $HostName"
-        }
-        Write-Host "[+] $HostName contains User directories for the following Domain Administrators:"
-        #scan default drive user dir for domain administrators
-        foreach($Da in $Das) {
-            Try {
-                Get-ChildItem \\$HostName\$drive$\Users | Select-String -Pattern $Da
-            } Catch [System.Runtime.InteropServices.COMException] {
-                Write-Error "Error: $HostName is unavailable"
+            #scan default drive user dir for domain administrators
+            foreach($Da in $Das) {
+                Get-ChildItem \\$HostName\$drive$\Users | Select-String -Pattern $Da 
             }
+            Write-Host ""
+        } Catch {
+            Write-Host "[-] Error: Cannot identify default Windows drive for machine $HostName"
+            Write-Host ""
         }
     }
 
