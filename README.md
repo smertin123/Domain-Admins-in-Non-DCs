@@ -16,10 +16,16 @@ The script requires a list of domain adminstrators. If you dont have a list of d
 
 By default the tool scans for domain administrators with the current PowerShell session credentials and stores in "domain-admin-scan-results.txt"
 
+### Example: Scan using current credentials and output to default file
+
+```Powershell
+domain-admins-in-non-dcs.ps1 --da-scan
+```
+
 ### Example: Change output file to "domain_admins.txt" and request credentials before scanning
 
 ```Powershell
-domain-admins-in-non-dcs.ps1 -c -o domain_admins.txt
+domain-admins-in-non-dcs.ps1 --da-scan -c -o domain_admins.txt
 ```
 
 ## Using the scanner
