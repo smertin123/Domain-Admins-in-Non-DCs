@@ -5,12 +5,14 @@ A PowerShell script that checks for domain administrators logging into non-domai
 The script requires a list of domain adminstrators. If you dont have a list of domain administrators the script can scan for them and output to file.
 
 
-## Screenshot
+# Screenshot
 
 ![alt text](/img/help.png)
 
 
-## Usage
+# All scans require a list of domain administrators
+
+## Scan for Domain Administrators
 
 By default the tool scans for domain administrators with the current PowerShell session credentials and stores in "domain-admin-scan-results.txt"
 
@@ -20,7 +22,7 @@ By default the tool scans for domain administrators with the current PowerShell 
 domain-admins-in-non-dcs.ps1 -c -o domain_admins.txt
 ```
 
-**All scans require a list of domain administrators**
+## Using the scanner
 
 By default all remote scans are against a single target
 
