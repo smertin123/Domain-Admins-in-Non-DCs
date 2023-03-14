@@ -46,10 +46,10 @@ The tool also accepts a list of remote hosts
 domain-admins-in-non-dcs.ps1 -l DAs.txt --remote-sessions -r computers.txt
 ```
 
-## Risk
+# Risk
 Logging into non-domain controllers with domain administrator credentials poses a significant security risk, as the credentials are stored as hashes and tokens on the Windows platform. Malicious actors can use these to pivot to other systems within the domain, potentially resulting in a data breach. Possession of a domain administrator hash or token grants adversaries the capability to elevate their privileges, enabling them to access domain controllers and compromise the entire domain.
 
-## Mitigations
+# Mitigations
 The following recommendations should be considered when remediating the vulnerability:
 * Restrict domain administrator accounts to log in to and carry out operations only on domain controllers.
 * Restrict domain administrator accounts to a maximum of two (2).
