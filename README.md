@@ -1,4 +1,4 @@
-# Domain-Admins-in-Non-DCs
+# Domain Administrators in Non-Domain Controllers Scanner
 
 A PowerShell script that checks for domain administrators logging into non-domain controllers. The script has local and remote functionality with the option to supply a list of remote hosts. The script can search in local processes, local or remote sessions, and can check for local or remote user directories. 
 
