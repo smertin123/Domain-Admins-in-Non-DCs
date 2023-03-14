@@ -34,7 +34,7 @@ domain-admins-in-non-dcs.ps1 -l DAs.txt --remote-sessions SQLSERVER01
 
 The tool also accepts a list of remote hosts
 
-### Example: Scan remote host list "computers.txt" using domain administrator list "DAs.txt"
+### Example: Scan remote host list "computers.txt" for current sessions using domain administrator list "DAs.txt"
 
 ```PowerShell
 domain-admins-in-non-dcs.ps1 -l DAs.txt --remote-sessions -r computers.txt
