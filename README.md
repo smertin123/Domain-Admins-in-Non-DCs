@@ -1,13 +1,14 @@
 # Domain Administrators in Non-Domain Controllers Scanner
 
-A PowerShell script that checks for domain administrators logging into non-domain controllers. The script has local and remote functionality with the option to supply a list of remote hosts. The script can search in local processes, local or remote sessions, and can check for local or remote user directories. 
+Offensive and Defensive PowerShell scripts that check for domain administrators logging into non-domain controllers. The scripts have local and remote functionality with the option to supply a list of remote hosts. The scripts can search in local processes, local or remote sessions, and can check for local or remote user directories. 
 
-The script requires a list of domain adminstrators. If you dont have a list of domain administrators the script can scan for them and output to file.
+The scripts requires a list of domain adminstrators. If you dont have a list of domain administrators the scripts can scan for them and output to file.
 
+# Offensive
 
-# Screenshot
+## Screenshot
 
-![alt text](/img/help.png)
+![alt text](/img/offensive/help.png)
 
 
 # All scans require a list of domain administrators
@@ -46,10 +47,15 @@ The tool also accepts a list of remote hosts
 domain-admins-in-non-dcs.ps1 -l DAs.txt --remote-sessions -r computers.txt
 ```
 
-# Risk
+# Defensive
+
+Work in progress...
+
+
+## Risk
 Logging into non-domain controllers with domain administrator credentials poses a significant security risk, as the credentials are stored as hashes and tokens on the Windows platform. Malicious actors can use these to pivot to other systems within the domain, potentially resulting in a data breach. Possession of a domain administrator hash or token grants adversaries the capability to elevate their privileges, enabling them to access domain controllers and compromise the entire domain.
 
-# Mitigations
+## Mitigations
 The following recommendations should be considered when remediating the vulnerability:
 * Restrict domain administrator accounts to log in to and carry out operations only on domain controllers.
 * Restrict domain administrator accounts to a maximum of two (2).
