@@ -1,24 +1,5 @@
 #Store all scans in functions
 
-Function Get-DAs {
-    param (
-        $FilePath,
-        $GetCreds
-    )
-
-    Import-Module ActiveDirectory
-    #if output file requested as second argument, store third argument as filename
-    if($GetCreds -eq "True") {
-        $cred = Get-Credential
-        $DomainAdmins = Get-ADGroupMember -Credential $cred -Identity "Domain Admins" | select -ExpandProperty "SamAccountName" | Out-File -FilePath $FilePath
-        Write-Host "File created: "$FilePath
-    } else {
-    #get a list of admins, select the name only, output results to file 
-    $DomainAdmins = Get-ADGroupMember -Identity "Domain Admins" | select -ExpandProperty "SamAccountName" | Out-File -FilePath $FilePath
-    Write-Host "File created: "$FilePath
-    }
-}
-
 Function Get-Sessions {
     param (
         $FileName,
@@ -164,15 +145,6 @@ switch ($args[0])
         Write-Host ""
         Write-Host " -l: Provide list of Domain Administrators"
         Write-Host ""
-        Write-Host "     -------------------------------------"
-        Write-Host "     ##  Get Domain Administrator list  ##"
-        Write-Host "     -------------------------------------"
-        Write-Host ""
-        Write-Host " --da-scan: Scan for Domain Administrators"
-        Write-Host " -c: Promt for credentials"
-        Write-Host " -o: Choose alternative output file (Default domain-admin-scan-results.txt)"
-        Write-Host ""
-        Write-Host ""
         Write-Host " #-#-#-#-#-#-#-#-#-#-#    Available scans   #-#-#-#-#-#-#-#-#-#-#"
         Write-Host ""
         Write-Host "     ***   All scans require a Domain Administrator list   ***"
@@ -207,29 +179,6 @@ switch ($args[0])
         Write-Host " --remote-all: Scan a remote machine for Domain Administrator sessions and directories"
         Write-Host " -r: Provide a list of remote machines to scan"
         Write-Host ""
-    }
-
-    #if argument --da-scan, scan for domain admins and output to file
-    "--da-scan" {
-        Import-Module ActiveDirectory
-        #if output file requested as second argument, store third argument as filename
-        if($args[1] -eq "-o") {
-            $FilePath = $args[2]
-        #if output file requested as third argument, store fourth argument as filename
-        } elseif($args[2] -eq "-o") {
-            $FilePath = $args[3]
-        } else {
-        #else use the default filename
-        $FilePath = ".\domain-admin-scan-results.txt"
-        }
-        #if user requests a cred prompt
-        if($args[1] -eq "-c" -Or $args[3] -eq "-c") {
-            #call Get-DAs function and prompt for creds
-            Get-DAs -FilePath $FilePath -GetCreds True
-            #if no cred prompt request, call Get-DAs function as current user
-        } else {
-            Get-DAs -FilePath $FilePath
-        }
     }
 
     #if argument -l, accept a file
