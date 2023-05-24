@@ -21,13 +21,13 @@ By default the tool grabs the list with the current PowerShell session credentia
 ### Example: Grab using current credentials and output to default file
 
 ```Powershell
-offensive-da-scanner.ps1 --da-scan
+da-grabber.ps1 --da-scan
 ```
 
 ### Example: Change output file to "domain_admins.txt" and request credentials before scanning
 
 ```Powershell
-offensive-da-scanner.ps1 --da-scan -c -o domain_admins.txt
+da-grabber.ps1 --da-scan -c -o domain_admins.txt
 ```
 
 
