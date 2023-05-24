@@ -8,7 +8,7 @@ The scripts requires a list of domain adminstrators. If you dont have a list of 
 
 ## Screenshot
 
-![alt text](/img/offensive/help.png)
+![alt text](/offensive/img/help.png)
 
 
 # All scans require a list of domain administrators
