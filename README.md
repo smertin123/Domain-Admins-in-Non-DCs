@@ -10,7 +10,7 @@ The scripts require a list of domain adminstrators. If you dont have a list of d
 
 ## Screenshot
 
-![alt text](/da-grabber.png)
+![alt text](/img/da-grabber.png)
 
 ## Using the Grabber
 
